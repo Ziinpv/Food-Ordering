@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Food Ordering</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <div class="container mt-5">
+        <h1 class="mb-4"><%= title %></h1>
+
+        <% if (cartItems && cartItems.length > 0) { %>
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th></th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% cartItems.forEach(item => { %>
+                        <tr>
+                            <td>
+                                <% if (item.image) { %>
+                                    <img src="<%= item.image %>" alt="<%= item.name %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px; margin-right: 10px;">
+                                <% } %>
+                            </td>
+                            <td><%= item.name %></td>
+                            <td><%= item.price.toLocaleString('vi-VN') %> VNĐ</td>
+                            <td>
+                                <!-- Basic quantity display - for interactive updates, would need JS + more routes -->
+                                <%= item.quantity %> 
+                            </td>
+                            <td><%= (item.price * item.quantity).toLocaleString('vi-VN') %> VNĐ</td>
+                            <td>
+                                <form action="/cart/remove/<%= item.foodId %>" method="POST" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                                <!-- Add + and - buttons for quantity later if desired -->
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <div class="text-end mt-3">
+                <h4>Subtotal: <%= totalAmount.toLocaleString('vi-VN') %> VNĐ</h4>
+                <% if (totalAmount > 0) { %> 
+                    <a href="/checkout" class="btn btn-primary">Proceed to Checkout</a>
+                <% } %>
+            </div>
+        <% } else { %>
+            <div class="alert alert-info" role="alert">
+                Your cart is currently empty. <a href="/" class="alert-link">Browse menu</a>.
+            </div>
+        <% } %>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

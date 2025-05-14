@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %> - Food Ordering</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('partials/navbar') %>
+
+    <div class="container mt-5">
+        <h1 class="mb-4 text-center"><%= title %></h1>
+
+        <div class="row g-5">
+            <div class="col-md-7 col-lg-8">
+                <h4 class="mb-3">Delivery Details</h4>
+                <form action="/place-order" method="POST" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="fullName" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="fullName" name="fullName" placeholder="Your Full Name" required>
+                            <div class="invalid-feedback">
+                                Valid full name is required.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="Your Phone Number" required>
+                            <div class="invalid-feedback">
+                                Valid phone number is required.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="address" class="form-label">Delivery Address</label>
+                            <input type="text" class="form-control" id="address" name="address" placeholder="1234 Main St, District, City" required>
+                            <div class="invalid-feedback">
+                                Please enter your delivery address.
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label for="deliveryNotes" class="form-label">Delivery Notes <span class="text-muted">(Optional)</span></label>
+                            <textarea class="form-control" id="deliveryNotes" name="deliveryNotes" rows="3" placeholder="Any special instructions for delivery..."></textarea>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h4 class="mb-3">Payment Method</h4>
+                    <div class="my-3">
+                        <div class="form-check">
+                            <input id="cod" name="paymentMethod" type="radio" class="form-check-input" value="cod" checked required>
+                            <label class="form-check-label" for="cod">Cash on Delivery (COD)</label>
+                        </div>
+                        <div class="form-check">
+                            <input id="onlinepayment" name="paymentMethod" type="radio" class="form-check-input" value="online" required>
+                            <label class="form-check-label" for="onlinepayment">Online Payment (Placeholder - Card, E-wallet)</label>
+                        </div>
+                         <div class="invalid-feedback">
+                            Please select a payment method.
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <button class="w-100 btn btn-primary btn-lg" type="submit">Place Order</button>
+                </form>
+            </div>
+            <div class="col-md-5 col-lg-4 order-md-last">
+                <h4 class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="text-primary">Your Cart Summary</span>
+                    <span class="badge bg-primary rounded-pill">0</span> <!-- Placeholder item count -->
+                </h4>
+                <ul class="list-group mb-3">
+                    <!-- Placeholder cart items - In a real app, loop through cart items -->
+                    <li class="list-group-item d-flex justify-content-between lh-sm">
+                        <div>
+                            <h6 class="my-0">Sample Item 1</h6>
+                            <small class="text-muted">Brief description of item</small>
+                        </div>
+                        <span class="text-muted">50.000 VNĐ</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between lh-sm">
+                        <div>
+                            <h6 class="my-0">Sample Item 2</h6>
+                            <small class="text-muted">Another item description</small>
+                        </div>
+                        <span class="text-muted">30.000 VNĐ</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between bg-light">
+                        <div class="text-success">
+                            <h6 class="my-0">Promo code (Placeholder)</h6>
+                            <small>EXAMPLECODE</small>
+                        </div>
+                        <span class="text-success">−10.000 VNĐ</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Total (VNĐ)</span>
+                        <strong>70.000 VNĐ</strong> <!-- Placeholder Total -->
+                    </li>
+                </ul>
+
+                <form class="card p-2">
+                    <div class="input-group">
+                        <input type="text" class="form-control" placeholder="Promo code">
+                        <button type="submit" class="btn btn-secondary">Redeem</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Example starter JavaScript for disabling form submissions if there are invalid fields
+        (() => {
+          'use strict'
+
+          const forms = document.querySelectorAll('.needs-validation')
+
+          Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+              if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+              }
+
+              form.classList.add('was-validated')
+            }, false)
+          })
+        })()
+    </script>
+</body>
+</html> 

@@ -49,6 +49,7 @@ mongoose.connect(MONGODB_URI, {
 .then(() => {
     console.log('Successfully connected to MongoDB Atlas.');
     console.log('Database:', MONGODB_URI);
+    seedUsers();
 })
 .catch(err => {
     console.error('MongoDB connection error:', err);
@@ -98,10 +99,87 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
     }
 });
 
 const User = mongoose.model('User', userSchema);
+
+// Function to seed initial admin and user accounts
+async function seedUsers() {
+    try {
+        // Check for existing admin
+        let admin = await User.findOne({ username: 'admin@gmail.com' });
+        if (!admin) {
+            const hashedPassword = await bcrypt.hash('123456', 10);
+            admin = new User({
+                username: 'admin@gmail.com',
+                password: hashedPassword,
+                role: 'admin'
+            });
+            await admin.save();
+            console.log('Admin account seeded: admin@gmail.com');
+        } else {
+            console.log('Admin account admin@gmail.com already exists.');
+        }
+        
+        // Check for existing user
+        let regularUser = await User.findOne({ username: 'user@gmail.com' });
+        if (!regularUser) {
+            const hashedPassword = await bcrypt.hash('123456', 10);
+            regularUser = new User({
+                username: 'user@gmail.com',
+                password: hashedPassword,
+                role: 'user' // Default role is 'user', but explicitly set for clarity
+            });
+            await regularUser.save();
+            console.log('User account seeded: user@gmail.com');
+        } else {
+            console.log('User account user@gmail.com already exists.');
+        }
+    } catch (error) {
+        console.error('Error seeding users:', error);
+    }
+}
+
+// Order Schema
+const orderSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    items: [{
+        food: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Food',
+            required: true
+        },
+        name: String, // Store name at time of order for history
+        quantity: {
+            type: Number,
+            required: true,
+            min: 1
+        },
+        price: Number // Store price at time of order
+    }],
+    totalAmount: {
+        type: Number,
+        required: true
+    },
+    status: {
+        type: String,
+        enum: ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'],
+        default: 'Pending'
+    },
+    // Add other fields like shippingAddress, paymentDetails etc. as needed
+}, { timestamps: true }); // Adds createdAt and updatedAt automatically
+
+const Order = mongoose.model('Order', orderSchema);
 
 // Middleware to check if user is authenticated
 const isAuthenticated = (req, res, next) => {
@@ -112,6 +190,156 @@ const isAuthenticated = (req, res, next) => {
     // You could also pass a message e.g. req.flash('error', 'Please log in to view this page.');
     res.redirect('/login'); 
 };
+
+// Middleware to check if user is an Admin
+const isAdmin = (req, res, next) => {
+    // relies on isAuthenticated to have already run and populated req.session.user
+    if (req.session.user && req.session.user.role === 'admin') {
+        return next(); // User is an admin, proceed
+    }
+    // User is not an admin
+    // Optionally, you can send a forbidden status or redirect to a specific page
+    // For now, let's send a 403 Forbidden status, or redirect to home for non-admins.
+    // If you want to show a specific error page, you can render one here.
+    // For simplicity, redirecting non-admins to the homepage if they try to access admin routes.
+    // Or, you could send a 403 Forbidden status if you prefer.
+    // res.status(403).send('Access Denied: You do not have admin privileges.');
+    req.session.message = { type: 'error', text: 'You are not authorized to view this page.' }; // Example of a flash message setup
+    res.redirect('/'); 
+};
+
+// USER ROUTES (Cart, Checkout, etc.)
+
+// Add item to cart
+app.post('/cart/add/:foodId', isAuthenticated, async (req, res) => {
+    const { foodId } = req.params;
+    try {
+        const foodItem = await Food.findById(foodId);
+        if (!foodItem) {
+            // Handle case where food item is not found
+            // req.session.message = { type: 'error', text: 'Food item not found.' };
+            return res.redirect('/');
+        }
+
+        if (!req.session.cart) {
+            req.session.cart = [];
+        }
+
+        const cart = req.session.cart;
+        const existingItemIndex = cart.findIndex(item => item.foodId.toString() === foodId);
+
+        if (existingItemIndex > -1) {
+            // Item already in cart, increment quantity
+            cart[existingItemIndex].quantity += 1;
+        } else {
+            // Add new item to cart
+            cart.push({
+                foodId: foodItem._id,
+                name: foodItem.name,
+                price: foodItem.price,
+                image: foodItem.image, // Optional: if you want to show image in cart
+                quantity: 1
+            });
+        }
+        // req.session.message = { type: 'success', text: `Added ${foodItem.name} to cart!` };
+        res.redirect('/'); // Or redirect to /cart
+
+    } catch (error) {
+        console.error("Error adding item to cart:", error);
+        // req.session.message = { type: 'error', text: 'Could not add item to cart.' };
+        res.redirect('/');
+    }
+});
+
+app.get('/cart', isAuthenticated, (req, res) => {
+    const cartItems = req.session.cart || [];
+    let totalAmount = 0;
+    if (cartItems.length > 0) {
+        totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    }
+    res.render('cart', { 
+        title: 'Your Shopping Cart', 
+        cartItems: cartItems, 
+        totalAmount: totalAmount 
+    });
+});
+
+app.get('/checkout', isAuthenticated, (req, res) => {
+    // For now, checkout is just a UI placeholder.
+    // In a real app, you might pass cart total or other relevant info.
+    res.render('checkout', { title: 'Checkout' });
+});
+
+app.post('/place-order', isAuthenticated, async (req, res) => {
+    const cartItems = req.session.cart || [];
+    if (cartItems.length === 0) {
+        // req.session.message = { type: 'error', text: 'Your cart is empty. Please add items before placing an order.' };
+        return res.redirect('/cart');
+    }
+
+    const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    try {
+        // For UI demonstration, we'll just generate a fake order ID
+        const fakeOrderId = 'ORD' + Math.random().toString(36).substr(2, 9).toUpperCase();
+        
+        // Log the order details that WOULD be saved
+        console.log('Order placed (simulated):');
+        console.log('User: ', req.session.user.username);
+        console.log('Delivery Details: ', req.body);
+        console.log('Items: ', cartItems.map(item => ({ name: item.name, quantity: item.quantity, price: item.price })));
+        console.log('Total Amount: ', totalAmount);
+        
+        // In a real app, create and save Order document here:
+        // const newOrder = new Order({
+        //     user: req.session.user._id,
+        //     items: cartItems.map(item => ({ food: item.foodId, name:item.name, quantity: item.quantity, price: item.price })),
+        //     totalAmount: totalAmount,
+        //     deliveryDetails: req.body, // (e.g. fullName, phone, address from checkout form)
+        //     paymentMethod: req.body.paymentMethod,
+        //     status: 'Pending'
+        // });
+        // await newOrder.save();
+
+        // Clear the cart from session after successful (simulated) order
+        req.session.cart = []; 
+
+        res.redirect(`/order-confirmation/${fakeOrderId}`);
+
+    } catch (error) {
+        console.error("Error during simulated order placement:", error);
+        res.redirect('/checkout');
+    }
+});
+
+app.get('/order-confirmation/:orderId', isAuthenticated, (req, res) => {
+    // const message = req.session.message;
+    // delete req.session.message; // Clear message after displaying
+
+    res.render('order-confirmation', {
+        title: 'Order Confirmed',
+        orderId: req.params.orderId,
+        // message: message
+    });
+});
+
+// ADMIN ROUTES
+app.get('/admin/dashboard', isAuthenticated, isAdmin, async (req, res) => {
+    try {
+        const totalFoodItems = await Food.countDocuments();
+        const totalOrders = await Order.countDocuments();
+        // Later, you can add more stats: total revenue, recent orders, etc.
+        res.render('admin/dashboard', { 
+            title: 'Admin Dashboard',
+            totalFoodItems,
+            totalOrders
+            // Pass other stats here
+        });
+    } catch (error) {
+        console.error("Error loading admin dashboard:", error);
+        res.status(500).send("Error loading admin dashboard");
+    }
+});
 
 // Routes
 app.get('/', async (req, res) => {
@@ -124,11 +352,11 @@ app.get('/', async (req, res) => {
     }
 });
 
-app.get('/add-food', isAuthenticated, (req, res) => {
+app.get('/add-food', isAuthenticated, isAdmin, (req, res) => {
     res.render('add-food');
 });
 
-app.post('/add-food', isAuthenticated, async (req, res) => {
+app.post('/add-food', isAuthenticated, isAdmin, async (req, res) => {
     try {
         const newFood = new Food(req.body);
         await newFood.save();
@@ -140,7 +368,7 @@ app.post('/add-food', isAuthenticated, async (req, res) => {
 });
 
 // Route to display the edit food form
-app.get('/edit-food/:id', isAuthenticated, async (req, res) => {
+app.get('/edit-food/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
         const food = await Food.findById(req.params.id);
         if (!food) {
@@ -154,7 +382,7 @@ app.get('/edit-food/:id', isAuthenticated, async (req, res) => {
 });
 
 // Route to handle the submission of the edit food form
-app.post('/edit-food/:id', isAuthenticated, async (req, res) => {
+app.post('/edit-food/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
         await Food.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.redirect('/');
@@ -165,7 +393,7 @@ app.post('/edit-food/:id', isAuthenticated, async (req, res) => {
 });
 
 // Route to handle deleting a food item
-app.post('/delete-food/:id', isAuthenticated, async (req, res) => {
+app.post('/delete-food/:id', isAuthenticated, isAdmin, async (req, res) => {
     try {
         await Food.findByIdAndDelete(req.params.id);
         res.redirect('/');
@@ -240,11 +468,16 @@ app.post('/login', async (req, res) => {
         // Login successful, store user info in session
         req.session.user = {
             _id: user._id,
-            username: user.username
-            // Add any other user properties you want in the session
+            username: user.username,
+            role: user.role // Add role to session
         };
 
-        res.redirect('/'); // Redirect to homepage or dashboard
+        // Redirect based on role
+        if (user.role === 'admin') {
+            res.redirect('/admin/dashboard'); // We'll create this route next
+        } else {
+            res.redirect('/'); 
+        }
 
     } catch (error) {
         console.error('Error during login:', error);
