@@ -30,9 +30,24 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/add-food">Add New Food</a>
-                    </li>
+                    <% if (currentUser) { %>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Hi, <%= currentUser.username %></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/add-food">Add New Food</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    <% } else { %>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/register">Register</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/login">Login</a>
+                        </li>
+                    <% } %>
                 </ul>
             </div>
         </div>
@@ -59,12 +74,16 @@
                                     <h5 class="card-title"><%= food.name %></h5>
                                     <p class="card-text"><%= food.description %></p>
                                     <p class="price">$<%= food.price.toFixed(2) %></p>
+                                    <% if (currentUser) { %>
                                     <div class="d-flex justify-content-between">
                                         <a href="/edit-food/<%= food._id %>" class="btn btn-sm btn-outline-secondary">Edit</a>
                                         <form action="/delete-food/<%= food._id %>" method="POST" class="d-inline">
                                             <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this item?')">Delete</button>
                                         </form>
                                     </div>
+                                    <% } else { %>
+                                        <button class="btn btn-primary w-100" onclick="alert('Please log in to order or manage food items.')">Order Now</button>
+                                    <% } %>
                                 </div>
                             </div>
                         </div>

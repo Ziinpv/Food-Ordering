@@ -18,8 +18,26 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/">Back to Menu</a>
+                        <a class="nav-link" href="/">Menu</a>
                     </li>
+                    <% if (currentUser) { %>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Hi, <%= currentUser.username %></a>
+                        </li>
+                         <li class="nav-item">
+                            <a class="nav-link" href="/add-food">Add New Food</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logout">Logout</a>
+                        </li>
+                    <% } else { %>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/register">Register</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/login">Login</a>
+                        </li>
+                    <% } %>
                 </ul>
             </div>
         </div>
