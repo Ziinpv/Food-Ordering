@@ -88,6 +88,42 @@ app.post('/add-food', async (req, res) => {
     }
 });
 
+// Route to display the edit food form
+app.get('/edit-food/:id', async (req, res) => {
+    try {
+        const food = await Food.findById(req.params.id);
+        if (!food) {
+            return res.status(404).send('Food item not found');
+        }
+        res.render('edit-food', { food });
+    } catch (err) {
+        console.error('Error fetching food for edit:', err);
+        res.status(500).send('Error loading edit form');
+    }
+});
+
+// Route to handle the submission of the edit food form
+app.post('/edit-food/:id', async (req, res) => {
+    try {
+        await Food.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error updating food:', err);
+        res.status(500).send('Error updating food item');
+    }
+});
+
+// Route to handle deleting a food item
+app.post('/delete-food/:id', async (req, res) => {
+    try {
+        await Food.findByIdAndDelete(req.params.id);
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error deleting food:', err);
+        res.status(500).send('Error deleting food item');
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
